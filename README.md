@@ -1,1 +1,1 @@
-# computer-tennis
+# Computer Tennis
