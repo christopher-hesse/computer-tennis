@@ -102,7 +102,5 @@ class Surface:
         # vertex inputs are a series of points, convert to a series of triangles
         triangle_fan = []
         for i in range(1, len(vertices) - 1):
-            triangle_fan.extend([vertices[0], vertices[i], vertices[i+1]])
-        self._draw_vertices(
-            vertices=triangle_fan, color=color, kind=moderngl.TRIANGLES
-        )
+            triangle_fan.extend([vertices[0], vertices[i], vertices[i + 1]])
+        self._draw_vertices(vertices=triangle_fan, color=color, kind=moderngl.TRIANGLES)

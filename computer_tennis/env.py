@@ -2,12 +2,10 @@ import collections
 import random
 import math
 
-import gym
-import gym.spaces
+import gym3
 import numpy as np
 
 from computer_tennis.types import Color, Vec2
-from computer_tennis.image_viewer import ImageViewer
 from computer_tennis.util import build_surface
 
 
@@ -58,8 +56,15 @@ def _clamp(v, low, high):
         return v
 
 
-class TennisEnv(gym.Env):
-    def __init__(self, surface_type="opengl"):
+def TennisEnv(num=1, surface_type="opengl"):
+    envs = []
+    for _ in range(num):
+        envs.append(SingleTennisEnv(surface_type=surface_type))
+    return gym3.ConcatEnv(envs)
+
+
+class SingleTennisEnv(gym3.Env):
+    def __init__(self, surface_type):
         # same buttons as retro atari
         self.buttons = [
             "BUTTON",
@@ -71,16 +76,13 @@ class TennisEnv(gym.Env):
             "LEFT",
             "RIGHT",
         ]
-        self.observation_space = gym.spaces.Box(
-            low=0, high=255, shape=(SCREEN_HEIGHT, SCREEN_WIDTH, 3), dtype=np.uint8
-        )
-        self.action_space = gym.spaces.MultiBinary(len(self.buttons))
-        super().__init__()
+        ob_space = gym3.types.TensorType(eltype=gym3.types.Discrete(256, dtype_name="uint8"), shape=(SCREEN_HEIGHT, SCREEN_WIDTH, 3))
+        ac_space = gym3.types.TensorType(eltype=gym3.types.Discrete(2, dtype_name="uint8"), shape=(len(self.buttons),))
+        super().__init__(ob_space=ob_space, ac_space=ac_space, num=1)
 
         self._render_window = None
         self._viewer = None
 
-        self._done = True
         self._ball_pos = None
         self._last_obs = None
         self._surface = build_surface(
@@ -110,13 +112,15 @@ class TennisEnv(gym.Env):
         self._p2_pos = None
         self._p2_vel = None
 
-        self._p1_score = None
-        self._p2_score = None
+        self._p1_accel = 1
+        self._p2_accel = 0.8
 
-        self._step_count = None
+        self._reset_state(2, full_reset=True)
 
-        self._p1_accel = None
-        self._p2_accel = None
+        self._p1_score = 0
+        self._p2_score = 0
+
+        self._last_obs = (0.0,  self._render(), True)
 
     def _rect_to_vertices(self, rect):
         return [
@@ -126,7 +130,7 @@ class TennisEnv(gym.Env):
             Vec2(rect.x, rect.y + rect.h),
         ]
 
-    def _reset_state(self, serve_to_player):
+    def _reset_state(self, serve_to_player, full_reset):
         self._ball_pos = Vec2(
             78, random.randrange(115 - SCREEN_HEIGHT // 4, 115 + SCREEN_HEIGHT // 4)
         )
@@ -150,12 +154,9 @@ class TennisEnv(gym.Env):
         ball_dir = Vec2(math.cos(ball_angle), math.sin(ball_angle))
         self._ball_vel = ball_dir * random.uniform(0.5, 2.0)
 
-        if self._done:
+        if full_reset:
             self._p1_pos = Vec2(140, 168 + random.uniform(-10, 10))
             self._p1_vel = Vec2(0, 0)
-
-        self._p1_accel = random.uniform(0.1, 2)
-        self._p2_accel = random.uniform(0.1, 2)
 
         self._p2_pos = Vec2(16, 115 + random.uniform(-10, 10))
         self._p2_vel = Vec2(0, 0)
@@ -172,24 +173,12 @@ class TennisEnv(gym.Env):
     def _move_rect(self, p, r):
         return Rect(p.x + r.x, p.y + r.y, r.w, r.h)
 
-    def reset(self):
-        self._reset_state(2)
-
-        self._p1_score = 0
-        self._p2_score = 0
-
-        self._step_count = 0
-
-        self._done = False
-        self._last_obs = self._observe()
-        return self._last_obs
-
     def _draw_digit(self, digit, pos, color):
         for rect in DIGITS[digit]:
             vertices = [v + pos for v in self._rect_to_vertices(rect)]
             self._surface.draw_polygon(vertices, color)
 
-    def _observe(self):
+    def _render(self):
         self._surface.reset(color=self._bg_color)
 
         self._draw_digit(self._p1_score % 10, Vec2(116, 1), self._p1_color)
@@ -221,8 +210,12 @@ class TennisEnv(gym.Env):
         img = self._surface.get_image()
         return img
 
-    def step(self, action):
-        assert not self._done
+    def observe(self):
+        rew, img, first = self._last_obs
+        return (np.array([rew], dtype=np.float32), np.expand_dims(img, axis=0), np.array([first], dtype=np.bool))
+
+    def act(self, ac):
+        action = ac[0]
         if action[4]:
             # up
             self._p1_vel += Vec2(0, -self._p1_accel)
@@ -296,33 +289,33 @@ class TennisEnv(gym.Env):
             self._ball_vel.x = -self._ball_vel.x
 
         rew = 0.0
+        first = False
         if self._ball_pos.x < 0:
             self._p1_score += 1
             rew = 1.0
-            self._reset_state(2)
             if self._p1_score >= MAX_SCORE:
-                self._done = True
+                first = True
+            self._reset_state(serve_to_player=2, full_reset=first)
         elif self._ball_pos.x > SCREEN_WIDTH:
             self._p2_score += 1
             rew = -1.0
-            self._reset_state(1)
             if self._p2_score >= MAX_SCORE:
-                self._done = True
+                first = True
+            self._reset_state(serve_to_player=1, full_reset=first)
 
-        self._step_count += 1
-        self._last_obs = self._observe()
-        return self._last_obs, rew, self._done, {}
+        self._last_obs = (rew, self._render(), first)
 
-    def render(self, mode="human"):
-        if mode == "human":
-            if self._render_window is None:
-                self._render_window = ImageViewer()
+    def get_info(self):
+        return [{}]
 
-            return self._render_window.draw(self._last_obs)
-        elif mode == "rgb_array":
-            return self._last_obs - 128
-        else:
-            raise Exception("invalid mode")
-
-    def close(self):
-        pass
+    def keys_to_act(self, keys_list):
+        result = []
+        for keys in keys_list:
+            act = np.zeros(shape=self.ac_space.shape, dtype=np.uint8)
+            key_to_button = {"UP": "UP", "DOWN": "DOWN"}
+            for key, button in key_to_button.items():
+                if key in keys:
+                    act[self.buttons.index(button)] = 1
+                    break
+            result.append(np.expand_dims(act, axis=0))
+        return result
