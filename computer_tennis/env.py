@@ -97,9 +97,12 @@ class SingleTennisEnv(gym3.Env):
         )
 
         self._white_color = Color(236 / 255, 236 / 255, 236 / 255)
-        self._bg_color = Color(144 / 255, 72 / 255, 17 / 255)
-        self._p1_color = Color(92 / 255, 186 / 255, 92 / 255)
-        self._p2_color = Color(213 / 255, 130 / 255, 74 / 255)
+        # self._bg_color = Color(144 / 255, 72 / 255, 17 / 255)
+        # self._p1_color = Color(92 / 255, 186 / 255, 92 / 255)
+        # self._p2_color = Color(213 / 255, 130 / 255, 74 / 255)
+        self._bg_color = Color(114 / 255, 106 / 255, 149 / 255)
+        self._p1_color = Color(246 / 255, 167 / 255, 193 / 255)
+        self._p2_color = Color(151 / 255, 242 / 255, 243 / 255)
 
         self._ball_rect = Rect(0, 0, 2, 4)
         self._paddle_rect = Rect(0, 0, 4, 16)
