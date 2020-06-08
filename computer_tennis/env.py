@@ -56,17 +56,23 @@ def _clamp(v, low, high):
         return v
 
 
-def TennisEnv(num=1, surface_type="opengl", num_players=1):
+def TennisEnv(num=1, surface_type="opengl", num_players=1, egl_device_index=None):
     assert num % num_players == 0
     num = num // num_players
     envs = []
     for _ in range(num):
-        envs.append(SingleTennisEnv(surface_type=surface_type, num_players=num_players))
+        envs.append(
+            SingleTennisEnv(
+                surface_type=surface_type,
+                num_players=num_players,
+                device_index=device_index,
+            )
+        )
     return gym3.ConcatEnv(envs)
 
 
 class SingleTennisEnv(gym3.Env):
-    def __init__(self, surface_type, num_players):
+    def __init__(self, surface_type, num_players, egl_device_index):
         # same buttons as retro atari
         self.buttons = [
             "BUTTON",
@@ -78,8 +84,14 @@ class SingleTennisEnv(gym3.Env):
             "LEFT",
             "RIGHT",
         ]
-        ob_space = gym3.types.TensorType(eltype=gym3.types.Discrete(256, dtype_name="uint8"), shape=(SCREEN_HEIGHT, SCREEN_WIDTH, 3))
-        ac_space = gym3.types.TensorType(eltype=gym3.types.Discrete(2, dtype_name="uint8"), shape=(len(self.buttons),))
+        ob_space = gym3.types.TensorType(
+            eltype=gym3.types.Discrete(256, dtype_name="uint8"),
+            shape=(SCREEN_HEIGHT, SCREEN_WIDTH, 3),
+        )
+        ac_space = gym3.types.TensorType(
+            eltype=gym3.types.Discrete(2, dtype_name="uint8"),
+            shape=(len(self.buttons),),
+        )
         super().__init__(ob_space=ob_space, ac_space=ac_space, num=num_players)
 
         self._render_window = None
@@ -87,6 +99,11 @@ class SingleTennisEnv(gym3.Env):
 
         self._ball_pos = None
         self._last_obs = None
+
+        surface_kwargs = {}
+        if surface_type == "opengl":
+            surface_kwargs["egl_device_index"] = egl_device_index
+
         self._surface = build_surface(
             surface_type,
             pixel_width=SCREEN_WIDTH,
@@ -94,6 +111,7 @@ class SingleTennisEnv(gym3.Env):
             view_width=SCREEN_WIDTH,
             view_height=SCREEN_HEIGHT,
             origin_at_center=False,
+            **surface_kwargs,
         )
 
         self._white_color = Color(236 / 255, 236 / 255, 236 / 255)
@@ -116,7 +134,7 @@ class SingleTennisEnv(gym3.Env):
         self._p1_vel = None
         self._p2_pos = None
         self._p2_vel = None
-        
+
         self._p1_accel = 1
         if num_players == 2:
             self._p2_accel = 1
@@ -129,7 +147,7 @@ class SingleTennisEnv(gym3.Env):
         self._p1_score = 0
         self._p2_score = 0
 
-        self._last_obs = (0.0,  self._render(), True)
+        self._last_obs = (0.0, self._render(), True)
 
     def _rect_to_vertices(self, rect):
         return [
@@ -222,9 +240,17 @@ class SingleTennisEnv(gym3.Env):
     def observe(self):
         rew, img, first = self._last_obs
         if self.num == 2:
-            return (np.array([rew, -rew], dtype=np.float32), np.stack([img, img], axis=0), np.array([first, first], dtype=np.bool))
+            return (
+                np.array([rew, -rew], dtype=np.float32),
+                np.stack([img, img], axis=0),
+                np.array([first, first], dtype=np.bool),
+            )
         else:
-            return (np.array([rew], dtype=np.float32), np.expand_dims(img, axis=0), np.array([first], dtype=np.bool))
+            return (
+                np.array([rew], dtype=np.float32),
+                np.expand_dims(img, axis=0),
+                np.array([first], dtype=np.bool),
+            )
 
     def act(self, ac):
         action = ac[0]

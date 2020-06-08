@@ -1,6 +1,5 @@
 import pytest
-import platform
-import numpy as np
+from gym3 import types_np
 
 from computer_tennis.env import TennisEnv
 
@@ -18,12 +17,9 @@ def test_works(make_env, surface_type):
     for _ in range(3):
         env = make_env(surface_type=surface_type)
         envs.append(env)
-        env.reset()
         for _ in range(10):
-            env.step(env.action_space.sample())
-
-    for env in envs:
-        env.close()
+            ac = types_np.sample(env.ac_space, bshape=(env.num,))
+            env.act(ac)
 
 
 @pytest.mark.parametrize("make_env", TEST_ENVS)
@@ -33,14 +29,10 @@ def test_speed(benchmark, make_env, surface_type):
     Test the speed of different environments
     """
     env = make_env(surface_type=surface_type)
-    act = np.zeros(env.action_space.shape, dtype=env.action_space.dtype)
-    env.reset()
+    ac = types_np.zeros(env.ac_space, bshape=(env.num,))
 
     def loop():
         for _ in range(1000):
-            _, _, done, _ = env.step(act)
-            if done:
-                env.reset()
+            env.act(ac)
 
     benchmark(loop)
-    env.close()

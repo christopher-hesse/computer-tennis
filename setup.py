@@ -22,7 +22,7 @@ setup_dict = dict(
         "dev": ["pytest", "pytest-benchmark"],
         # pycairo cannot be a dependency because it often fails to install
         # as it is lacking binary wheels
-        "cairo":[ "pycairo>=1.19.0,<2.0.0"],
+        "cairo": ["pycairo>=1.19.0,<2.0.0"],
     },
     python_requires=">=3.7.0",
 )

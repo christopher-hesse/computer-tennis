@@ -23,13 +23,24 @@ class Surface:
     CIRCLE_SEGMENTS = 16
 
     def __init__(
-        self, pixel_width, pixel_height, view_width, view_height, origin_at_center=True
+        self,
+        pixel_width,
+        pixel_height,
+        view_width,
+        view_height,
+        origin_at_center=True,
+        egl_device_index=None,
     ):
         context_kwargs = {"standalone": True}
         # we have to set the argument in this weird way because there doesn't appear to be
         # a way to tell create_context to use the default backend
         if platform.system() == "Linux":
             context_kwargs["backend"] = "egl"
+            # if egl_device_index is not None:
+            # context_kwargs["device_index"] = egl_device_index
+            assert (
+                egl_device_index is None
+            ), "waiting for a new version of glcontext to be released before this will work"
         self.ctx = moderngl.create_context(**context_kwargs)
 
         with self.ctx:

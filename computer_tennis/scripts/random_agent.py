@@ -1,5 +1,6 @@
 from gym3 import types_np, ViewerWrapper
 from computer_tennis import TennisEnv
+
 env = TennisEnv(num=2, num_players=2)
 env = ViewerWrapper(env, tps=60)
 step = 0
