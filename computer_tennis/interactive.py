@@ -6,8 +6,6 @@ from gym3 import Interactive
 
 def main():
     env = TennisEnv()
-    a, b, c = env.observe()
-    print(b.shape)
     ia = Interactive(env, tps=60)
     ia.run()
 

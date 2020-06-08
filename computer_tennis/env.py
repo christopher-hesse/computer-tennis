@@ -56,15 +56,17 @@ def _clamp(v, low, high):
         return v
 
 
-def TennisEnv(num=1, surface_type="opengl"):
+def TennisEnv(num=1, surface_type="opengl", num_players=1):
+    assert num % num_players == 0
+    num = num // num_players
     envs = []
     for _ in range(num):
-        envs.append(SingleTennisEnv(surface_type=surface_type))
+        envs.append(SingleTennisEnv(surface_type=surface_type, num_players=num_players))
     return gym3.ConcatEnv(envs)
 
 
 class SingleTennisEnv(gym3.Env):
-    def __init__(self, surface_type):
+    def __init__(self, surface_type, num_players):
         # same buttons as retro atari
         self.buttons = [
             "BUTTON",
@@ -78,7 +80,7 @@ class SingleTennisEnv(gym3.Env):
         ]
         ob_space = gym3.types.TensorType(eltype=gym3.types.Discrete(256, dtype_name="uint8"), shape=(SCREEN_HEIGHT, SCREEN_WIDTH, 3))
         ac_space = gym3.types.TensorType(eltype=gym3.types.Discrete(2, dtype_name="uint8"), shape=(len(self.buttons),))
-        super().__init__(ob_space=ob_space, ac_space=ac_space, num=1)
+        super().__init__(ob_space=ob_space, ac_space=ac_space, num=num_players)
 
         self._render_window = None
         self._viewer = None
@@ -111,9 +113,13 @@ class SingleTennisEnv(gym3.Env):
         self._p1_vel = None
         self._p2_pos = None
         self._p2_vel = None
-
+        
         self._p1_accel = 1
-        self._p2_accel = 0.8
+        if num_players == 2:
+            self._p2_accel = 1
+        else:
+            # make computer a bit slower so it's easier to score
+            self._p2_accel = 0.8
 
         self._reset_state(2, full_reset=True)
 
@@ -212,16 +218,44 @@ class SingleTennisEnv(gym3.Env):
 
     def observe(self):
         rew, img, first = self._last_obs
-        return (np.array([rew], dtype=np.float32), np.expand_dims(img, axis=0), np.array([first], dtype=np.bool))
+        if self.num == 2:
+            return (np.array([rew, -rew], dtype=np.float32), np.stack([img, img], axis=0), np.array([first, first], dtype=np.bool))
+        else:
+            return (np.array([rew], dtype=np.float32), np.expand_dims(img, axis=0), np.array([first], dtype=np.bool))
 
     def act(self, ac):
         action = ac[0]
-        if action[4]:
+        if action[4] and action[5]:
+            pass
+        elif action[4]:
             # up
             self._p1_vel += Vec2(0, -self._p1_accel)
         elif action[5]:
             # down
             self._p1_vel += Vec2(0, self._p1_accel)
+
+        if self.num == 2:
+            p2_action = ac[1]
+            if p2_action[4] and p2_action[5]:
+                pass
+            elif p2_action[4]:
+                # up
+                self._p2_vel += Vec2(0, -self._p2_accel)
+            elif p2_action[5]:
+                # down
+                self._p2_vel += Vec2(0, self._p2_accel)
+        else:
+            # AI
+            paddle_mid_y = self._p2_pos.y + self._paddle_rect.h / 2
+            ball_mid_y = self._ball_pos.y + self._ball_rect.h / 2
+            diff_mid_y = paddle_mid_y - ball_mid_y
+            if abs(diff_mid_y) < 2:
+                # dead zone
+                pass
+            elif paddle_mid_y > ball_mid_y:
+                self._p2_vel += Vec2(0, -self._p2_accel)
+            else:
+                self._p2_vel += Vec2(0, self._p2_accel)
 
         self._p1_vel.y *= 0.8
         self._p2_vel.y *= 0.8
@@ -231,18 +265,6 @@ class SingleTennisEnv(gym3.Env):
         self._ball_pos += self._ball_vel
         self._p1_pos += self._p1_vel
         self._p2_pos += self._p2_vel
-
-        # AI
-        paddle_mid_y = self._p2_pos.y + self._paddle_rect.h / 2
-        ball_mid_y = self._ball_pos.y + self._ball_rect.h / 2
-        diff_mid_y = paddle_mid_y - ball_mid_y
-        if abs(diff_mid_y) < 2:
-            # dead zone
-            pass
-        elif paddle_mid_y > ball_mid_y:
-            self._p2_vel += Vec2(0, -self._p2_accel)
-        else:
-            self._p2_vel += Vec2(0, self._p2_accel)
 
         self._p1_pos.y = _clamp(self._p1_pos.y, 24, SCREEN_HEIGHT)
         self._p2_pos.y = _clamp(self._p2_pos.y, 24, SCREEN_HEIGHT)
