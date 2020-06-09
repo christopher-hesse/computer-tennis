@@ -20,8 +20,6 @@ def get_translate_matrix(translate_x, translate_y):
 
 
 class Surface:
-    CIRCLE_SEGMENTS = 16
-
     def __init__(
         self,
         pixel_width,

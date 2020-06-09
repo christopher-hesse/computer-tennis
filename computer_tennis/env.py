@@ -65,7 +65,7 @@ def TennisEnv(num=1, surface_type="opengl", num_players=1, egl_device_index=None
             SingleTennisEnv(
                 surface_type=surface_type,
                 num_players=num_players,
-                device_index=device_index,
+                egl_device_index=egl_device_index,
             )
         )
     return gym3.ConcatEnv(envs)
@@ -357,7 +357,7 @@ class SingleTennisEnv(gym3.Env):
         self._last_obs = (rew, self._render(), first)
 
     def get_info(self):
-        return [{}]
+        return [{} for _ in range(self.num)]
 
     def keys_to_act(self, keys_list):
         result = []
