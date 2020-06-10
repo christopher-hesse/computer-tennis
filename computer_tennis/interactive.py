@@ -1,4 +1,3 @@
-import numpy as np
 from computer_tennis.env import TennisEnv
 
 from gym3 import Interactive
