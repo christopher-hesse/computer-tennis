@@ -34,11 +34,8 @@ class Surface:
         # a way to tell create_context to use the default backend
         if platform.system() == "Linux":
             context_kwargs["backend"] = "egl"
-            # if egl_device_index is not None:
-            # context_kwargs["device_index"] = egl_device_index
-            assert (
-                egl_device_index is None
-            ), "waiting for a new version of glcontext to be released before this will work"
+            if egl_device_index is not None:
+                context_kwargs["device_index"] = egl_device_index
         self.ctx = moderngl.create_context(**context_kwargs)
 
         with self.ctx:
