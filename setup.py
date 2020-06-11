@@ -17,7 +17,11 @@ setup_dict = dict(
     author="Christopher Hesse",
     license="Public Domain",
     packages=find_packages(),
-    install_requires=["moderngl>=5.6.0,<6.0.0", "gym3>=0.3.1,<0.4.0"],
+    install_requires=[
+        "moderngl>=5.6.0,<6.0.0",
+        "gym3>=0.3.1,<0.4.0",
+        "glcontext==2.3.dev0",
+    ],
     extras_require={
         "dev": ["pytest", "pytest-benchmark"],
         # pycairo cannot be a dependency because it often fails to install

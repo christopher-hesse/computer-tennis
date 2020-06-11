@@ -4,7 +4,7 @@ A gym reinforcement learning environment using the [`gym3`](https://github.com/o
 
 This environment has pixel observations which can be rendered with either OpenGL (which should work almost anywhere) or Cairo (if you have the python `pycairo` package installed).  In both cases, the rendering is done off screen so there is no popup window.  The Cairo version is probably faster, but harder to get working due to `pycairo` not having binary wheels.
 
-<!-- In addition, X-server-less OpenGL rendering is available on Linux.  To choose the EGL device, pass `egl_device_index` to the environment constructor. -->
+In addition, X-server-less OpenGL rendering is available on Linux.  To choose the EGL device, pass `egl_device_index` to the environment constructor.
 
 ## Installation
 
