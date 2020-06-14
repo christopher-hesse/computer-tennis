@@ -2,7 +2,11 @@
 
 A gym reinforcement learning environment using the [`gym3`](https://github.com/openai/gym3) API.  This is mostly a clone of the Atari Pong (Video Olympics) game, though the actual movement code isn't that close to the original.  Both single player and 2 player modes are supported.
 
+<img src="https://raw.githubusercontent.com/christopher-hesse/computer-tennis/master/docs/env.gif">
+
 This environment has pixel observations which can be rendered with either OpenGL (which should work almost anywhere) or Cairo (if you have the python `pycairo` package installed).  In both cases, the rendering is done off screen so there is no popup window.  The Cairo version is probably faster, but harder to get working due to `pycairo` not having binary wheels.
+
+The pixel observations are not square, like in the Atari game, so you have to scale to a 4:3 ratio to get the correct appearance.
 
 In addition, X-server-less OpenGL rendering is available on Linux.  To choose the EGL device, pass `egl_device_index` to the environment constructor.
 

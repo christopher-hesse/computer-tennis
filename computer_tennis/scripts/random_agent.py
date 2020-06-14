@@ -1,8 +1,10 @@
 from gym3 import types_np, ViewerWrapper
+# from gym3 import VideoRecorderWrapper
 from computer_tennis import TennisEnv
 
-env = TennisEnv(num=2, num_players=2)
-env = ViewerWrapper(env, tps=60)
+env = TennisEnv(num=1, num_players=1)
+env = ViewerWrapper(env, tps=60, width=1024, height=768)
+# env = VideoRecorderWrapper(env, directory=".", fps=60)
 step = 0
 while True:
     ac = types_np.sample(env.ac_space, bshape=(env.num,))
